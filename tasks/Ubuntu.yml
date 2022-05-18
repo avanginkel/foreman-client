@@ -13,4 +13,3 @@
   template: 
     src: rhsm.conf.j2
     dest: /etc/rhsm/rhsm.conf
-

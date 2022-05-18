@@ -1,0 +1,12 @@
+---
+installationfiles: /tmp/rpms
+repodir: /etc/yum.repos.d/
+
+activationkeyota: 
+activationkeyprod: 
+environmentota: 
+
+environmentprod:
+hostgroupota: 
+hostgroupprod: 
+

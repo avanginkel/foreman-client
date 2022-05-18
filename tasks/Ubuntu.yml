@@ -1,0 +1,16 @@
+- name: install debs {{ installationfiles }}
+  shell: "apt install -y {{ installationfiles }}/*.deb"
+
+- name: Ansible Create rhsm directory if not exists
+  file:
+    path: /etc/rhsm
+    state: directory
+    mode: 0755
+    group: root
+    owner: root
+
+- name: copy rhsm.conf
+  template: 
+    src: rhsm.conf.j2
+    dest: /etc/rhsm/rhsm.conf
+

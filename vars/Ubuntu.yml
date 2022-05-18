@@ -1,0 +1,12 @@
+installationfiles: /tmp/debs
+repodir: /etc/apt/apt.sources.d/
+
+activationkeyota:
+activationkeypreprod: 
+activationkeyprod: 
+
+environmentota: 
+environmentprod: 
+hostgroupota: 
+hostgrouppreprod: 
+hostgroupprod: 

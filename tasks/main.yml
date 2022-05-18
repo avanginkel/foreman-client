@@ -1,0 +1,123 @@
+---
+# tasks file for roles/foreman-client
+- name: Include OS-specific variables.
+  include_vars: "{{ ansible_distribution }}.yml"
+
+- name: revoke possible certificates from the foreman server
+  ignore_errors: true
+  command: "sudo /opt/puppetlabs/bin/puppetserver ca clean --certname {{ ansible_hostname }}"
+  delegate_to: "{{ foreman_server }}"
+  register: revoke_cert
+
+- name: result revoke
+  ignore_errors: true
+  delegate_to: "{{ foreman_server }}"
+  debug:
+    msg: "{{ revoke_cert.stdout }}"
+
+- name: remove repos 
+  shell: 'rm -rf "{{ repodir }}"*'
+
+- name: mkdir "{{ installationfiles }}"
+  file: path="{{ installationfiles }}" state=directory
+
+- name: "copy files to  to {{ installationfiles }}"
+  copy:
+    src: "{{ item }}"
+    dest: "{{ installationfiles }}"
+  with_fileglob:
+    - "files/{{ ansible_distribution }}/{{ ansible_distribution_major_version }}/*"
+  register: rpms_copied
+
+- name: local RPMs not found
+  fail:
+    msg: "RPMs not found in ../files/{{ ansible_distribution }}/"
+  when: rpms_copied.results|length == 0 and rpms_copied.skipped and rpms_copied.skipped_reason.find('No items') != -1
+
+- set_fact:
+    rpm_list: "{{ rpms_copied.results | map(attribute='dest') | list}}"
+
+- include_tasks: "{{ ansible_distribution }}.yml"
+
+- name: subscribe to foreman_server
+  command: "subscription-manager register --force --org='{{ organization }}' --insecure --activationkey={{ activationkey_ota }}"
+  when: inventory_hostname in groups["ota"]
+
+- name: subscribe to foreman_server
+  command: "subscription-manager register --force --org='{{ organization }}' --insecure --activationkey={{ activationkey_prod }}"
+  when: inventory_hostname in groups['prod']
+
+- name: replace line in rhsm.list
+  shell: "sed -i 's/Architectures: 0/Architectures: amd64/g' /etc/apt/sources.list.d/rhsm.sources"
+  when: ansible_distribution_file_variety == "Debian"
+
+- name: install puppet
+  yum:
+    name: puppet-agent
+    state: latest
+
+- name: setup puppet-file
+  blockinfile:
+    block: |
+      server = "{{ foreman_server }}"
+      environment = {{ puppet_environment_ota}} 
+      ignoreschedules = true
+
+      [agent]
+      pluginsync      = true
+      report          = true
+      ca_server       = "{{ foreman_server }}"
+      certname        = "{{ ansible_facts['fqdn'] }}"
+      server          = "{{ foreman_server }}"
+    path: /etc/puppetlabs/puppet/puppet.conf
+    state: present
+
+- name: "change hostgroup to {{ foreman_server['hostgroup'] }}"
+  command: "hammer host update --name  {{ ansible_facts['fqdn'] }} --hostgroup-title {{ hostgroupota if inventory_hostname in  groups['ota'] else hostgroupprod }}"
+  delegate_to: "{{ foreman_server }}"
+  register: commando
+
+- name: how are we registered?
+  debug:
+    msg: "{{ commando.stdout }}"
+  
+- name: make a symlink for puppet
+  become: yes
+  ignore_errors: true
+  command: 'ln -s /opt/puppetlabs/puppet/bin/puppet /bin/puppet'
+
+- name: make a puppet request
+  become: true
+  ignore_errors: true
+  command: 'puppet agent -t'
+
+- name: accept putty income
+  command: "sudo /opt/puppetlabs/bin/puppetserver ca sign --all"
+  register: puppetserver
+  delegate_to: "{{ foreman_server }}"
+  ignore_errors: yes
+
+- name: what did we get
+  debug:
+    msg: "{{ puppetserver.stdout }}"
+  ignore_errors: yes
+  
+- name: make a puppet request
+  become: true
+  ignore_errors: true
+  command: 'puppet agent -t'
+  register: puppet_result
+
+- name: what did the puppet do
+  debug:
+    msg: "{{puppet_result.stdout_lines }}"
+
+- name: install dev-tools
+  apt:
+          name: "{{ item }}"
+          state: latest
+  loop:
+          - vim
+          - open-vm-tools  
+
+

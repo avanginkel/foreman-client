@@ -1,0 +1,37 @@
+- name: install RPMs
+  yum:
+    name: "{{ rpm_list }}"
+    disable_gpg_check: yes
+    
+- name: Find all repositories
+  find:
+    paths: "{{ repodir }}"
+    file_type: file
+    recurse: no
+    patterns: "*.repo"
+  register: repos_d
+
+- name: Compile repository list
+  set_fact:
+    found_repo_files: "{{ found_repo_files }} + [ '{{ item.path }}' ]"
+  loop_control:
+    label: "{{ item.path }}"
+  with_items:
+    - "{{ repos_d.files }}"
+
+- name: Rename any extra repositories
+  when: not ansible_check_mode
+  lineinfile:
+    path: "{{ item }}"
+    #The String to Search
+    regexp: "enabled=1" 
+    #The String to Replace
+    line: "enabled=0"
+    state: present
+  with_items:
+    - "{{ found_repo_files | difference(allowed_repos) }}"
+
+- name: install RPMs
+  yum:
+    name: "{{ rpm_list }}"
+    disable_gpg_check: yes

@@ -10,6 +10,6 @@
     owner: root
 
 - name: copy rhsm.conf
-  template: 
+  template:
     src: rhsm.conf.j2
     dest: /etc/rhsm/rhsm.conf

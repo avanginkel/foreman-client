@@ -1,4 +1,4 @@
-# tasks file for roles/foreman-client
+#tasks file for roles/foreman-client
 
 - name: Include OS-specific variables.
   include_vars: "{{ ansible_distribution }}.yml"
@@ -15,7 +15,7 @@
   debug:
     msg: "{{ revoke_cert.stdout }}"
 
-- name: remove repos 
+- name: remove repos
   shell: 'rm -rf "{{ repodir }}"*'
 
 - name: mkdir "{{ installationfiles }}"
@@ -80,16 +80,16 @@
 - name: how are we registered?
   debug:
     msg: "{{ commando.stdout }}"
-  
+
 - name: make a symlink for puppet
   become: yes
   ignore_errors: true
-  command: 'ln -s /opt/puppetlabs/puppet/bin/puppet /bin/puppet'
+  command: "ln -s /opt/puppetlabs/puppet/bin/puppet /bin/puppet"
 
 - name: make a puppet request
   become: true
   ignore_errors: true
-  command: 'puppet agent -t'
+  command: "puppet agent -t"
 
 - name: accept putty income
   command: "sudo /opt/puppetlabs/bin/puppetserver ca sign --all"
@@ -101,11 +101,11 @@
   debug:
     msg: "{{ puppetserver.stdout }}"
   ignore_errors: yes
-  
+
 - name: make a puppet request
   become: true
   ignore_errors: true
-  command: 'puppet agent -t'
+  command: "puppet agent -t"
   register: puppet_result
 
 - name: what did the puppet do
@@ -114,8 +114,8 @@
 
 - name: install dev-tools
   apt:
-          name: "{{ item }}"
-          state: latest
+    name: "{{ item }}"
+    state: latest
   loop:
-          - vim
-          - open-vm-tools  
+    - vim
+    - open-vm-tools

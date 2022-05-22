@@ -1,6 +1,6 @@
 galaxy_info:
   author: avanginkel
-  description: IT Administrator
+  description: A role to add clients to a foreman server
   company: vanginkelsolutions
 
   # If the issue tracker for your role is not on github, uncomment the
